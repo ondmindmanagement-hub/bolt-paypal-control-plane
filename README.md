@@ -44,3 +44,15 @@ This is a hackathon prototype. It is not a financial institution, production pay
 ## License
 
 MIT
+
+## AI planner
+
+The full prototype includes an Ollama-based local planner using qwen2.5:1.5b. It converts natural-language payment intent into a structured action before the deterministic BOLT policy gate evaluates authority.
+
+Endpoint: POST /actions/from-intent
+
+Example JSON body: {"intent":"Refund 18 EUR to the customer for the duplicate charge"}
+
+## Public demo
+
+A browser-based policy demo is published with GitHub Pages from the docs folder. It intentionally does not execute real payments.
