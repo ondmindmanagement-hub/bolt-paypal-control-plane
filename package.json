@@ -1,0 +1,8 @@
+{
+  "name": "bolt-paypal-control-plane",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "scripts": {"start": "node src/server.js", "test": "node --test"},
+  "engines": {"node": ">=20"}
+}
