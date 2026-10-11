@@ -1,4 +1,5 @@
-const API = process.env.PAYPAL_API_BASE || 'https://api-m.sandbox.paypal.com';
+// Sandbox-only experimental helper. Never accept an environment override to live PayPal.
+const API = 'https://api-m.sandbox.paypal.com';
 export async function getAccessToken() {
   const id = process.env.PAYPAL_CLIENT_ID;
   const secret = process.env.PAYPAL_CLIENT_SECRET;

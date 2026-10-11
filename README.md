@@ -4,42 +4,61 @@ Hackathon project for the PayPal AI Hackathon 2026.
 
 BOLT Agentic Payments Control Plane explores how AI-assisted payment workflows can stay useful without turning model output into unrestricted financial authority.
 
-## Core idea
+## Current state: local-only preview, not a payment processor
 
-An AI system may propose a payment, refund, or other PayPal action. Before anything is executed, BOLT evaluates the proposed action against explicit policy:
+The project has two components:
+- a browser policy preview served as a static GitHub Pages document;
+- a local Node.js HTTP server for manually proposed payments and optional
+  local Ollama planning. All proposal endpoints return executed:false.
 
-- allow: low-risk actions may proceed;
-- approval_required: consequential actions pause for a human;
-- deny: actions outside configured policy are blocked.
+Every positive in-policy payment/refund proposal requires human approval, which
+is **not yet implemented as an authenticated server-side action**. The server
+never creates a PayPal order, captures or refunds money. The separate
+sandbox-only helper in src/paypal.js is **not invoked** by any HTTP route;
+setting PayPal credentials does **not** enable execution.
 
-Every decision can be logged so a reviewer can understand what was proposed, why it was allowed or blocked, and what ultimately executed.
+### Run locally
 
-## Current prototype
+    npm test
+    npm start
 
-This repository contains a small Node.js service with a policy gate, autonomous limits, human-approval decisions, hard deny thresholds, PayPal Sandbox order creation when credentials are configured, and tests for the policy layer.
+The server listens only at http://127.0.0.1:8787, not on other devices.
+Check GET /health. POST /actions/payment with a JSON object to preview
+the policy decision. POST /actions/from-intent requires a running local
+Ollama model (qwen2.5:1.5b by default), and returns a preview only.
+Malformed JSON returns 400, oversized payloads 413, non-JSON payloads 415,
+and unavailable local AI 503. It does not return stack traces or secrets.
 
-## Run
+Example without contacting PayPal:
 
-npm test
-npm start
+    curl -s -X POST http://127.0.0.1:8787/actions/payment \
+      -H 'Content-Type: application/json' \
+      -d '{"kind":"payment","amount":20,"currency":"EUR"}'
 
-Health endpoint: GET http://localhost:8787/health
-Payment proposal endpoint: POST http://localhost:8787/actions/payment
+Expected: approval_required, executed:false.
 
-To enable PayPal Sandbox execution set PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET before starting the service.
+## Hackathon verification gaps
 
-## Hackathon roadmap
+PayPal AI Hackathon's official rules require a real usable PayPal developer
+platform integration and accessible functional demo, public licensed source
+and demo video. The browser-only policy preview is *not* a PayPal Sandbox
+integration. The local service is not a production authorization layer. Do
+not claim that API calls or AI inference occurred unless a specific log
+shows successful, authorized sandbox calls and an actual local model reply.
 
-- add an AI planner that converts natural-language intent into structured PayPal actions;
-- add explicit human approval UI;
-- persist audit events;
-- add refund and capture flows;
-- add a public demo;
-- record a demonstration video under three minutes.
+This entry is different in structure from the submitted CLI PayFlow Guard,
+but both concern approval of PayPal-related actions. Two same-hackathon
+entries must be substantially different; organizer/judges decide if they
+are distinct. Do not claim separate eligibility has been certified.
 
-## Safety scope
+## Technical constraints
 
-This is a hackathon prototype. It is not a financial institution, production payment processor, or certified compliance product. The demo is intended for PayPal Sandbox and representative test data.
+- No external payments, captures, refunds or PayPal live API access.
+- No independent authenticated operators, approval UI or durable audit logs.
+- No network exposure beyond loopback by default.
+- No automatic emails, customer records or paid APIs.
+- Timeouts, rate limits, secure key handling, customer security review and
+  real integration validation are future tasks, not implemented features.
 
 ## License
 
