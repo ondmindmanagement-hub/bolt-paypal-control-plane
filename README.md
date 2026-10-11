@@ -6,8 +6,9 @@ BOLT Agentic Payments Control Plane explores how AI-assisted payment workflows c
 
 ## Current state: local-only preview, not a payment processor
 
-The project has two components:
+The project has three components:
 - a browser policy preview served as a static GitHub Pages document;
+- a sandbox-only, read-only CLI for existing-order verification;
 - a local Node.js HTTP server for manually proposed payments and optional
   local Ollama planning. All proposal endpoints return executed:false.
 
@@ -36,6 +37,42 @@ Example without contacting PayPal:
       -d '{"kind":"payment","amount":20,"currency":"EUR"}'
 
 Expected: approval_required, executed:false.
+
+## Read-only PayPal Sandbox order reconciliation (experimental)
+
+Distinct from PayFlow Guard's single-order human-approval terminal demo,
+the Control Plane now has an independent existing-order verification track.
+
+The read-only CLI retrieves an existing PayPal Sandbox order status with
+sandbox OAuth credentials, normalizes only the order ID/status and purchase
+unit amounts, removes customer fields, attaches a SHA-256 evidence digest,
+and optionally compares two independently obtained snapshots to flag
+changes for human review. Synthetic fixtures are labeled SYNTHETIC_UNVERIFIED;
+only the explicit network inspector path labels SANDBOX_API_READ. This is
+not an independently signed PayPal attestation and cannot identify real users. It never creates an order, captures funds, issues
+refunds or authorizes payment, and is NOT available via the HTTP API.
+
+To run a zero-credential synthetic demo:
+
+    node src/sandbox-review-demo.js
+
+To inspect an order you ALREADY CREATED IN YOUR OWN PAYPAL SANDBOX
+(with no new transaction and no live endpoint), configure credentials as
+environment variables on your own machine and run:
+
+    node src/sandbox-inspect.js --order-id YOUR_EXISTING_SANDBOX_ORDER_ID
+
+Never publish real keys/screenshots. Only the fixed sandbox host
+api-m.sandbox.paypal.com is used. OAuth token retrieval uses POST on
+/v1/oauth2/token; then only GET /v2/checkout/orders/{id} is issued.
+Never use PayPal Live credentials. No API call has been executed with real
+credentials or an actual PayPal test order in internal QA.
+The results are mock-backed tests, not proof of a live integration.
+
+14 added offline read-only API-contract and evidence tests use fake
+credentials and injected transports without contacting external services.
+This remains subject to judges' substantial-difference rule. Customer
+evidence and authenticated review require additional work before sale.
 
 ## Hackathon verification gaps
 

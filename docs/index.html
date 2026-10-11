@@ -1,4 +1,20 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BOLT Agentic Payments Control Plane</title><style>body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0b0d10;color:#f5f7fa;margin:0;padding:40px}main{max-width:820px;margin:auto}.card{background:#151a20;border:1px solid #2b323b;border-radius:18px;padding:22px;margin:18px 0}input,select,button{font:inherit;padding:12px;border-radius:10px;border:1px solid #444;background:#0f1318;color:white}button{cursor:pointer}pre{white-space:pre-wrap;background:#090b0e;padding:16px;border-radius:12px}</style></head><body><main><h1>BOLT Agentic Payments Control Plane</h1><p>Early-stage local policy demonstration. No payments, refunds or PayPal API calls occur on this page.</p><div class="card"><h2>Policy demo</h2><p><label>Action <select id="kind"><option>payment</option><option>refund</option></select></label></p><p><label>Amount <input id="amount" type="number" value="20" min="0" step="0.01"></label></p><p><label>Currency <select id="currency"><option>USD</option><option>EUR</option><option>GBP</option></select></label></p><p><button id="run">Evaluate proposed action</button></p><pre id="out"></pre></div><div class="card"><h2>Architecture</h2><p>Architecture under evaluation: natural-language intent → local Ollama planner → structured proposed action → deterministic policy review. All current API endpoints are preview-only and do not approve or execute PayPal transactions.</p><p>This public page demonstrates the same approval-required policy as the local Node.js server. The repository includes an unused sandbox-only PayPal Orders helper; actual sandbox execution and independently authenticated human approval are not implemented in this public demo.</p></div><script>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BOLT Agentic Payments Control Plane</title><style>body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0b0d10;color:#f5f7fa;margin:0;padding:40px}main{max-width:820px;margin:auto}.card{background:#151a20;border:1px solid #2b323b;border-radius:18px;padding:22px;margin:18px 0}input,select,button{font:inherit;padding:12px;border-radius:10px;border:1px solid #444;background:#0f1318;color:white}button{cursor:pointer}pre{white-space:pre-wrap;background:#090b0e;padding:16px;border-radius:12px}</style></head><body><main><h1>BOLT Agentic Payments Control Plane</h1><p>Early-stage local policy demonstration. No payments, refunds or PayPal API calls occur on this page.</p><div class="card"><h2>Policy demo</h2><p><label>Action <select id="kind"><option>payment</option><option>refund</option></select></label></p><p><label>Amount <input id="amount" type="number" value="20" min="0" step="0.01"></label></p><p><label>Currency <select id="currency"><option>USD</option><option>EUR</option><option>GBP</option></select></label></p><p><button id="run">Evaluate proposed action</button></p><pre id="out"></pre></div><div class="card">
+<h2>Order-state review (synthetic example)</h2>
+<p><strong>Fictional data only — no PayPal account, sandbox credentials or network requests.</strong>
+This workflow illustrates read-only reconciliation of existing orders,
+not creation of a new payment.</p>
+<p><label>Earlier snapshot
+<select id="previousStatus"><option>CREATED</option><option>SAVED</option>
+<option>APPROVED</option><option>COMPLETED</option><option>VOIDED</option>
+</select></label></p>
+<p><label>Later snapshot
+<select id="currentStatus"><option>APPROVED</option><option>CREATED</option>
+<option>SAVED</option><option>COMPLETED</option><option>VOIDED</option>
+</select></label></p>
+<p><button id="compare">Compare fictional snapshots</button></p>
+<pre id="reviewOut" aria-live="polite"></pre>
+</div>
+<div class="card"><h2>Architecture</h2><p>Architecture under evaluation: natural-language intent → local Ollama planner → structured proposed action → deterministic policy review. All current API endpoints are preview-only and do not approve or execute PayPal transactions.</p><p>This public page demonstrates the approval-required policy plus fictional order-state comparison. The repository also includes a separate local read-only Sandbox order inspector, which needs credentials and an already-existing test order; it is not called by this website. Actual Sandbox inspection has not been performed or independently verified here. Real payments, order creation from the public API and authenticated approvals are not implemented in this demo.</p></div><script>
 function evaluate(a) {
   const amount=Number(a.amount);
   const currency=String(a.currency || 'USD').toUpperCase();
@@ -24,4 +40,21 @@ function run() {
     null,2);
 }
 document.getElementById('run').onclick=run;run();
+function compareFictionalOrder() {
+  const prior=document.getElementById('previousStatus').value;
+  const current=document.getElementById('currentStatus').value;
+  const changed=prior!==current;
+  document.getElementById('reviewOut').textContent=JSON.stringify({
+    mode:'SYNTHETIC_OFFLINE_ORDER_RECONCILIATION',
+    prior:{orderId:'FAKE-DEMO-ORDER',status:prior},
+    current:{orderId:'FAKE-DEMO-ORDER',status:current},
+    reviewRequired:changed,
+    reviewReason:changed?'Order status changed; human review suggested':'No status change',
+    executed:false,
+    paypalApiCalls:0,
+    caveat:'Not evidence from an actual PayPal Sandbox order'
+  },null,2);
+}
+document.getElementById('compare').onclick=compareFictionalOrder;
+compareFictionalOrder();
 </script></main></body></html>
