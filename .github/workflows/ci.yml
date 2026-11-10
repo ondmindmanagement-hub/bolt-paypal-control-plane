@@ -1,0 +1,56 @@
+name: BOLT Control Plane — offline QA
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'docs/**'
+      - 'test/**'
+      - 'package.json'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'docs/**'
+      - 'test/**'
+      - 'package.json'
+      - '.github/workflows/ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: control-plane-offline-qa-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-tests:
+    name: No credentials / no payments
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run offline unit tests
+        env:
+          PAYPAL_CLIENT_ID: ''
+          PAYPAL_CLIENT_SECRET: ''
+          OPENAI_API_KEY: ''
+        run: npm test
+      - name: Verify reconciliation sample is explicitly synthetic
+        run: |
+          node src/sandbox-review-demo.js > "$RUNNER_TEMP/synthetic-demo.json"
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const data=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));
+            if (data.mode!=="OFFLINE_SYNTHETIC_NO_PAYPAL_API" || data.source!=="LOCAL_TEST_FIXTURE_NOT_VERIFIED_PAYPAL") process.exit(1);
+            if (!data.review) process.exit(1);
+            console.log("Offline synthetic reconciliation verified. This does not prove PayPal Sandbox integration.");
+          ' "$RUNNER_TEMP/synthetic-demo.json"
