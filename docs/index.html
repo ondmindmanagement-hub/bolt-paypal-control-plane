@@ -15,24 +15,36 @@ not creation of a new payment.</p>
 <pre id="reviewOut" aria-live="polite"></pre>
 </div>
 <div class="card"><h2>Architecture</h2><p>Architecture under evaluation: natural-language intent → local Ollama planner → structured proposed action → deterministic policy review. All current API endpoints are preview-only and do not approve or execute PayPal transactions.</p><p>This public page demonstrates the approval-required policy plus fictional order-state comparison. The repository also includes a separate local read-only Sandbox order inspector, which needs credentials and an already-existing test order; it is not called by this website. Actual Sandbox inspection has not been performed or independently verified here. Real payments, order creation from the public API and authenticated approvals are not implemented in this demo.</p></div><script>
+const DECIMAL_PATTERN = /^(?:0|[1-9][0-9]*)(?:\.[0-9]{1,2})?$/;
 function evaluate(a) {
-  const amount=Number(a.amount);
-  const currency=String(a.currency || 'USD').toUpperCase();
-  const kind=String(a.kind || 'payment');
-  if (!Number.isFinite(amount) || amount <= 0) {
-    return {decision:'deny',reason:'Amount must be positive.'};
+  if (!a || typeof a !== 'object' || Array.isArray(a)) {
+    return {decision:'deny',reason:'A structured payment proposal is required.'};
   }
+  const amount=a.amount;
+  if (typeof amount !== 'number' || !Number.isFinite(amount) || amount < 0.01 ||
+      !DECIMAL_PATTERN.test(String(amount))) {
+    return {decision:'deny',reason:'Amount must be a monetary number with up to two decimal places.'};
+  }
+  const currency=a.currency===undefined?'USD':
+    (typeof a.currency==='string'?a.currency.toUpperCase():null);
   if (!['USD','EUR','GBP'].includes(currency)) {
     return {decision:'deny',reason:'Currency is outside the demo policy.'};
   }
-  if ((kind==='payment' || kind==='refund') && amount <= 500) {
-    return {decision:'approval_required',reason:'Human approval is required before any payment execution.'};
+  const kind=a.kind;
+  if (kind!=='payment' && kind!=='refund') {
+    return {decision:'deny',reason:'Unsupported action type.'};
   }
-  return {decision:'deny',reason:'Amount exceeds configured demo limit.'};
+  if (amount>500) {
+    return {decision:'deny',reason:'Amount exceeds configured demo limit.'};
+  }
+  return {decision:'approval_required',reason:kind==='payment'
+    ?'Human approval is required before any payment execution.'
+    :'Human approval is required before any refund execution.'};
 }
 function run() {
+  const amountText=document.getElementById('amount').value;
   const a={kind:document.getElementById('kind').value,
-           amount:Number(document.getElementById('amount').value),
+           amount:DECIMAL_PATTERN.test(amountText)?Number(amountText):amountText,
            currency:document.getElementById('currency').value};
   document.getElementById('out').textContent=JSON.stringify(
     {proposedAction:a,policy:evaluate(a),executed:false,
